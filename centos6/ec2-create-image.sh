@@ -78,6 +78,9 @@ unalias -a
 
 [ -f "$PACKAGE_FILE" ] || abort "Not found: $PACKAGE_FILE"
 [ -f "$REPO_FILE" ] || abort "Not found: $REPO_FILE"
+REPO_FILE_DIR=`dirname $REPO_FILE`
+REPO_FILE_DIR=`(cd $REPO_FILE_DIR && pwd)`
+REPO_FILE=${REPO_FILE_DIR}/`basename $REPO_FILE`
 
 [ ! -f "$TARFILE" ] || abort "$TARFILE already exists."
 TARFILE_DIR=`dirname $TARFILE`
