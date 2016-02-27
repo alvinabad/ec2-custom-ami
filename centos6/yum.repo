@@ -1,0 +1,20 @@
+[_base]
+name=CentOS-6 - Base
+baseurl=http://mirror.centos.org/centos/6/os/x86_64/
+gpgcheck=1
+gpgkey=http://mirror.centos.org/centos/RPM-GPG-KEY-CentOS-6
+reposdir=/etc/dummy_reposync.repos.d
+
+[_updates]
+name=CentOS-6 - Updates
+baseurl=http://mirror.centos.org/centos/6/updates/x86_64/
+gpgcheck=1
+gpgkey=http://mirror.centos.org/centos/RPM-GPG-KEY-CentOS-6
+reposdir=/etc/dummy_reposync.repos.d
+
+[_extras]
+name=CentOS-6 - Extras
+baseurl=http://mirror.centos.org/centos/6/extras/x86_64/
+gpgcheck=1
+gpgkey=http://mirror.centos.org/centos/RPM-GPG-KEY-CentOS-6
+reposdir=/etc/dummy_reposync.repos.d
