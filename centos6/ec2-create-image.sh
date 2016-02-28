@@ -24,6 +24,7 @@
 # SOFTWARE.
 #-------------------------------------------------------------------------------
 
+#-------------------------------------------------------------------------------
 # Usage
 usage() {
     cat <<EOF
@@ -44,13 +45,135 @@ EOF
     exit 1
 }
 
-#----------
+#-------------------------------------------------------------------------------
 # abort
 abort() {
     echo "ERROR: $@" 1>&2
     exit 1
 }
 
+#-------------------------------------------------------------------------------
+cleanup() {
+    [ -d "${ROOT_MOUNT}" ] || abort "Not a directory: ${ROOT_MOUNT}"
+
+    echo "Cleaning up ${ROOT_MOUNT} ..."
+    close_devices
+    rm -rf ${ROOT_MOUNT}
+}
+
+#-------------------------------------------------------------------------------
+close_devices() {
+    [ -d "${ROOT_MOUNT}" ] || abort "Not a directory: ${ROOT_MOUNT}"
+
+    rm -f ${ROOT_MOUNT}/root/.bash_history
+
+    if [ "$IS_CENTOS" = "true" ]; then
+        yum -c $REPO_FILE --installroot=${ROOT_MOUNT} -y clean packages || true
+        rm -rf ${ROOT_MOUNT}/var/cache/yum
+        rm -rf ${ROOT_MOUNT}/var/lib/yum
+
+
+        umount ${ROOT_MOUNT}/sys 2>/dev/null || true
+        umount ${ROOT_MOUNT}/proc 2>/dev/null || true
+        umount ${ROOT_MOUNT}/dev/shm 2>/dev/null || true
+        umount ${ROOT_MOUNT}/dev/pts 2>/dev/null || true
+        umount ${ROOT_MOUNT}/dev 2>/dev/null || true
+    elif [ "$IS_DEBIAN" = "true" ]; then
+        umount ${ROOT_MOUNT}/proc 2>/dev/null || true
+        umount ${ROOT_MOUNT}/dev/pts 2>/dev/null || true
+        umount ${ROOT_MOUNT}/dev 2>/dev/null || true
+    fi
+
+    sync;sync;sync;sync;sync
+
+    echo "Devices closed."
+}
+
+setup_devices() {
+    [ -d "${ROOT_MOUNT}" ] || abort "Not a directory: ${ROOT_MOUNT}"
+
+    if [ "$IS_CENTOS" = "true" ]; then
+        mkdir -p ${ROOT_MOUNT}/var/{cache,log,lock,lib/rpm}
+        mkdir -p ${ROOT_MOUNT}/{dev,etc,proc,run,sys,srv}
+
+        # make device nodes
+        umount ${ROOT_MOUNT}/sys 2>/dev/null || true
+        umount ${ROOT_MOUNT}/proc 2>/dev/null || true
+        umount ${ROOT_MOUNT}/dev/shm 2>/dev/null || true
+        umount ${ROOT_MOUNT}/dev/pts 2>/dev/null || true
+        umount ${ROOT_MOUNT}/dev 2>/dev/null || true
+
+        # mount devices
+        mount -o bind /dev ${ROOT_MOUNT}/dev
+        mount -o bind /dev/pts ${ROOT_MOUNT}/dev/pts
+        mount -o bind /dev/shm ${ROOT_MOUNT}/dev/shm
+        mount -o bind /proc ${ROOT_MOUNT}/proc
+        mount -o bind /sys ${ROOT_MOUNT}/sys
+    elif [ "$IS_DEBIAN" = "true" ]; then
+        mkdir -p ${ROOT_MOUNT}/{dev,etc,proc}
+        umount ${ROOT_MOUNT}/proc 2>/dev/null || true
+        umount ${ROOT_MOUNT}/dev/pts 2>/dev/null || true
+        umount ${ROOT_MOUNT}/dev 2>/dev/null || true
+
+        mount -o bind /dev ${ROOT_MOUNT}/dev
+        mount -o bind /dev/pts ${ROOT_MOUNT}/dev/pts
+        mount -o bind /proc ${ROOT_MOUNT}/proc
+    fi
+
+    echo "Devices mounted."
+}
+
+install_packages() {
+    [ -d "${ROOT_MOUNT}" ] || abort "Not a directory: ${ROOT_MOUNT}"
+
+    if [ "$IS_CENTOS" = "true" ]; then
+        touch ${ROOT_MOUNT}/etc/fstab
+        mkdir -p ${ROOT_MOUNT}/etc/sysconfig
+        touch ${ROOT_MOUNT}/etc/sysconfig/network
+
+        # Install packages
+        PACKAGES=`cat $PACKAGE_FILE | grep -P '^[^#\s]+.*'`
+
+        #yum -c $REPO_FILE --disablerepo=* --enablerepo=_base --installroot=${ROOT_MOUNT} -y groupinstall Core
+        for p in $PACKAGES
+        do
+            yum -c $REPO_FILE --disablerepo=* --enablerepo=_base,_extras --installroot=${ROOT_MOUNT} -y install $p
+        done
+        echo "Packages installation complete."
+
+        #yum -c $REPO_FILE --disablerepo=* --enablerepo=_updates --installroot=${ROOT_MOUNT} -y update
+        #echo "YUM update complete."
+    elif [ "$IS_DEBIAN" = "true" ]; then
+        debootstrap --arch amd64 trusty ${ROOT_MOUNT}  http://archive.ubuntu.com/ubuntu
+    fi
+}
+
+post_install() {
+    [ -d "${ROOT_MOUNT}" ] || abort "Not a directory: ${ROOT_MOUNT}"
+
+    if [ "$IS_CENTOS" = "true" ]; then
+        cp chroot-post-install.sh ${ROOT_MOUNT}/tmp
+        chroot ${ROOT_MOUNT} /tmp/chroot-post-install.sh all
+    elif [ "$IS_DEBIAN" = "true" ]; then
+        true
+    fi
+}
+
+clean() {
+    [ -d "${ROOT_MOUNT}" ] || abort "Not a directory: ${ROOT_MOUNT}"
+
+    close_devices
+    rm -rf ${ROOT_MOUNT}/*
+}
+
+create_tar() {
+    cd ${ROOT_MOUNT}/ && tar cvfz ${TARFILE} .
+    echo "Created: $TARFILE"
+}
+
+#-------------------------------------------------------------------------------
+# START MAIN
+#-------------------------------------------------------------------------------
 [ $# -ne 0 ] || usage
 
 while getopts ":c:p:v" opt; do
@@ -90,94 +213,16 @@ TARFILE=${TARFILE_DIR}/`basename $TARFILE`
 SCRIPT_DIR=`dirname $0`
 SCRIPT_DIR=`(cd $SCRIPT_DIR && pwd)`
 
-cleanup() {
-    echo "Cleaning up ${ROOT_MOUNT} ..."
-    close_devices
-    rm -rf ${ROOT_MOUNT}
-}
-
-#----------
-close_devices() {
-    yum -c $REPO_FILE --installroot=${ROOT_MOUNT} -y clean packages || true
-
-    rm -f ${ROOT_MOUNT}/root/.bash_history
-    rm -rf ${ROOT_MOUNT}/var/cache/yum
-    rm -rf ${ROOT_MOUNT}/var/lib/yum
-
-    set +e
-    umount ${ROOT_MOUNT}/sys 2>/dev/null
-    umount ${ROOT_MOUNT}/proc 2>/dev/null
-    umount ${ROOT_MOUNT}/dev/shm 2>/dev/null
-    umount ${ROOT_MOUNT}/dev/pts 2>/dev/null
-    umount ${ROOT_MOUNT}/dev 2>/dev/null
-    sync;sync;sync;sync;sync
-
-    echo "Devices closed."
-}
-
-setup_devices() {
-    mkdir -p ${ROOT_MOUNT}/var/{cache,log,lock,lib/rpm}
-    mkdir -p ${ROOT_MOUNT}/{dev,etc,proc,run,sys,srv}
-
-    # make device nodes
-    umount ${ROOT_MOUNT}/sys 2>/dev/null || true
-    umount ${ROOT_MOUNT}/proc 2>/dev/null || true
-    umount ${ROOT_MOUNT}/dev/shm 2>/dev/null || true
-    umount ${ROOT_MOUNT}/dev/pts 2>/dev/null || true
-    umount ${ROOT_MOUNT}/dev 2>/dev/null || true
-
-    # mount devices
-    mount -o bind /dev ${ROOT_MOUNT}/dev
-    mount -o bind /dev/pts ${ROOT_MOUNT}/dev/pts
-    mount -o bind /dev/shm ${ROOT_MOUNT}/dev/shm
-    mount -o bind /proc ${ROOT_MOUNT}/proc
-    mount -o bind /sys ${ROOT_MOUNT}/sys
-    echo "Devices mounted."
-}
-
-install_packages() {
-    touch ${ROOT_MOUNT}/etc/fstab
-    mkdir -p ${ROOT_MOUNT}/etc/sysconfig
-    touch ${ROOT_MOUNT}/etc/sysconfig/network
-
-    # Install packages
-    PACKAGES=`cat $PACKAGE_FILE | grep -P '^[^#\s]+.*'`
-
-    #yum -c $REPO_FILE --disablerepo=* --enablerepo=_base --installroot=${ROOT_MOUNT} -y groupinstall Core
-    for p in $PACKAGES
-    do
-        yum -c $REPO_FILE --disablerepo=* --enablerepo=_base,_extras --installroot=${ROOT_MOUNT} -y install $p
-    done
-    echo "Packages installation complete."
-
-    #yum -c $REPO_FILE --disablerepo=* --enablerepo=_updates --installroot=${ROOT_MOUNT} -y update
-    #echo "YUM update complete."
-}
-
-post_install() {
-    cp chroot-post-install.sh ${ROOT_MOUNT}/tmp
-    chroot ${ROOT_MOUNT} /tmp/chroot-post-install.sh all
-
-}
-
-clean() {
-    close_devices
-    rm -rf ${ROOT_MOUNT}/*
-}
-
-create_tar() {
-    cd ${ROOT_MOUNT}/ && tar cvfz ${TARFILE} .
-    echo "Created: $TARFILE"
-}
-
-#-------------------------------------------------------------------------------
-# START MAIN
-#-------------------------------------------------------------------------------
-
 trap "cleanup; exit 1" SIGHUP SIGINT SIGTERM
 
 ROOT_MOUNT=/var/tmp/`basename $0`.${RANDOM}
 mkdir -p $ROOT_MOUNT
+
+if [ -f /etc/debian_version ]; then
+    IS_DEBIAN=true
+elif [ -f /etc/redhat-release ]; then
+    IS_CENTOS=true
+fi
 
 clean
 setup_devices
