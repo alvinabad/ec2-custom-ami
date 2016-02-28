@@ -81,11 +81,14 @@ close_devices() {
         umount ${ROOT_MOUNT}/dev/pts 2>/dev/null || true
         umount ${ROOT_MOUNT}/dev 2>/dev/null || true
     elif [ "$IS_DEBIAN" = "true" ]; then
-        if [ -d "${ROOT_MOUNT}/proc" ]; then
+        if [ -d "${ROOT_MOUNT}/proc" -a mountpoint {ROOT_MOUNT}/proc ]; then
             umount ${ROOT_MOUNT}/proc || true
         fi
-        if [ -d "${ROOT_MOUNT}/sys" ]; then
+        if [ -d "${ROOT_MOUNT}/sys" -a mountpoint {ROOT_MOUNT}/sys ]; then
             umount ${ROOT_MOUNT}/sys || true
+        fi
+        if [ -d "${ROOT_MOUNT}/dev/pts" -a mountpoint {ROOT_MOUNT}/dev/pts ]; then
+            umount ${ROOT_MOUNT}/dev/pts || true
         fi
     fi
 
@@ -152,15 +155,19 @@ install_packages() {
         echo "debootstrap install complete."
         echo ------------------------------------------------------------------------
 
-        if [ -d "${ROOT_MOUNT}/proc" ]; then
+        if [ -d "${ROOT_MOUNT}/proc" -a mountpoint {ROOT_MOUNT}/proc ]; then
             umount ${ROOT_MOUNT}/proc || true
         fi
-        if [ -d "${ROOT_MOUNT}/sys" ]; then
+        if [ -d "${ROOT_MOUNT}/sys" -a mountpoint {ROOT_MOUNT}/sys ]; then
             umount ${ROOT_MOUNT}/sys || true
+        fi
+        if [ -d "${ROOT_MOUNT}/dev/pts" -a mountpoint {ROOT_MOUNT}/dev/pts ]; then
+            umount ${ROOT_MOUNT}/dev/pts || true
         fi
 
         chroot ${ROOT_MOUNT} mount -t proc none /proc
         chroot ${ROOT_MOUNT} mount -t sysfs none /sys
+        chroot ${ROOT_MOUNT} mount -t devpts none /dev/pts
 
         chroot ${ROOT_MOUNT} apt-get update
         echo ------------------------------------------------------------------------
@@ -196,7 +203,8 @@ clean() {
 }
 
 create_tar() {
-    cd ${ROOT_MOUNT}/ && tar cvfz ${TARFILE} .
+    echo "Creating ${TARFILE} from ${ROOT_MOUNT}/ ..."
+    cd ${ROOT_MOUNT}/ && tar cfz ${TARFILE} .
     echo "Created: $TARFILE"
 }
 
