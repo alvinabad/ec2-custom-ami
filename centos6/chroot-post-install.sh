@@ -187,9 +187,9 @@ default		0
 timeout		0
 hiddenmenu
 title		Ubuntu 14.04.3 LTS Custom AMI
-    root (hd0,0)
-    kernel /boot/${VMLINUZ_FILE} root=LABEL=_root ro console=hvc0
-    initrd /boot/${INITRD_FILE}
+root (hd0,0)
+kernel /boot/${VMLINUZ_FILE} root=LABEL=_root ro console=hvc0
+initrd /boot/${INITRD_FILE}
 EOF
     fi
 }
@@ -229,7 +229,7 @@ EOF
 
 if [ -f /etc/debian_version ]; then
     IS_DEBIAN=true
-elif [ -f /etc/redhat-release ]; then
+elif [ -f /etc/centos-release ]; then
     IS_CENTOS=true
 else
     abort "Unknown system"
