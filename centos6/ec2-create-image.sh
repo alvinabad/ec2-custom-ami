@@ -260,3 +260,5 @@ post_install
 close_devices
 create_tar
 cleanup
+
+echo "All done."
