@@ -143,7 +143,7 @@ serial --unit=0 --speed=115200
 terminal --timeout=1 serial console
 title CentOS ${CENTOS_VERSION} (Custom AMI)
         root (hd0,0)
-        kernel /boot/${VMLINUZ_FILE} ro root=LABEL=_root console=ttyS0,115200 crashkernel=no SYSFONT=latarcyrheb-sun16 LANG=en_US.UTF-8 KEYTABLE=us
+        kernel /boot/${VMLINUZ_FILE} ro root=LABEL=_root console=hvc0 crashkernel=no SYSFONT=latarcyrheb-sun16 LANG=en_US.UTF-8 KEYTABLE=us
         initrd /boot/${INITRAMFS_FILE}
 EOF
 
