@@ -74,15 +74,16 @@ set_sshd_config() {
 
 #---------------------------------------
 set_network() {
-    mkdir -p /etc/sysconfig/network-scripts
+    if [ "$IS_CENTOS" = "true" ]; then
+        mkdir -p /etc/sysconfig/network-scripts
 
-    cat > /etc/sysconfig/network <<EOF
+        cat > /etc/sysconfig/network <<EOF
 NETWORKING=yes
 HOSTNAME=localhost.localdomain
 EOF
-    echo "/etc/sysconfig/network updated."
+        echo "/etc/sysconfig/network updated."
 
-    cat > /etc/sysconfig/network-scripts/ifcfg-eth0 <<EOF
+        cat > /etc/sysconfig/network-scripts/ifcfg-eth0 <<EOF
 DEVICE="eth0"
 NM_CONTROLLED="yes"
 ONBOOT=yes
@@ -94,49 +95,76 @@ PEERROUTES=yes
 IPV4_FAILURE_FATAL=yes
 IPV6INIT=no
 EOF
-    echo "ifcfg-eth0 updated."
+        echo "ifcfg-eth0 updated."
+    elif [ "$IS_DEBIAN" = "true" ]; then
+        cat > /etc/network/interfaces <<EOF
+# The loopback network interface
+auto lo
+iface lo inet loopback
+
+# The primary network interface
+auto eth0
+iface eth0 inet dhcp
+
+# Include files from /etc/network/interfaces.d:
+source-directory /etc/network/interfaces.d
+EOF
+        echo "/etc/network/interfaces updated."
+    fi
 }
 
 #---------------------------------------
 set_fstab() {
-    cat > /etc/fstab <<EOF
-LABEL=_boot             /boot                   ext4    defaults        1 1
-LABEL=_root             /                       ext4    defaults        1 1
-tmpfs                   /dev/shm                tmpfs   defaults        0 0
-devpts                  /dev/pts                devpts  gid=5,mode=620  0 0
-sysfs                   /sys                    sysfs   defaults        0 0
-proc                    /proc                   proc    defaults        0 0
+    if [ "$IS_CENTOS" = "true" ]; then
+        cat > /etc/fstab <<EOF
+LABEL=_boot           /boot          ext4    defaults        1 1
+LABEL=_root           /              ext4    defaults        1 1
+tmpfs                 /dev/shm       tmpfs   defaults        0 0
+devpts                /dev/pts       devpts  gid=5,mode=620  0 0
+sysfs                 /sys           sysfs   defaults        0 0
+proc                  /proc          proc    defaults        0 0
 EOF
+    elif [ "$IS_DEBIAN" = "true" ]; then
+        cat > /etc/fstab <<EOF
+LABEL=_root	/	 ext4	defaults,discard	0 0
+LABEL=_boot	/boot	 ext4	defaults,discard	0 0
+EOF
+    fi
 
     echo "/etc/fstab updated."
 }
 
 #---------------------------------------
 set_selinux() {
-    sed -i '/^SELINUX=/d' /etc/sysconfig/selinux
-    echo "SELINUX=disabled" >> /etc/sysconfig/selinux
-    touch /.autorelabel
+    if [ "$IS_CENTOS" = "true" ]; then
+        sed -i '/^SELINUX=/d' /etc/sysconfig/selinux
+        echo "SELINUX=disabled" >> /etc/sysconfig/selinux
+        touch /.autorelabel
 
-    echo "/etc/sysconfig/selinux updated."
+        echo "/etc/sysconfig/selinux updated."
+    fi
 }
 
 #---------------------------------------
 set_chkconfig() {
-    /sbin/chkconfig iptables off || true
-    /sbin/chkconfig ip6tables off || true
-    /sbin/chkconfig sendmail off || true
-    /sbin/chkconfig 
+    if [ "$IS_CENTOS" = "true" ]; then
+        /sbin/chkconfig iptables off || true
+        /sbin/chkconfig ip6tables off || true
+        /sbin/chkconfig sendmail off || true
+        /sbin/chkconfig 
 
-    echo "chkconfig set."
+        echo "chkconfig set."
+    fi
 }
 
 #---------------------------------------
 set_grub() {
-    VMLINUZ_FILE=`(cd /boot/ && ls -1 vmlinuz* | head -1)`
-    INITRAMFS_FILE=`(cd /boot/ && ls -1 initramfs-*.img | head -1)`
+    if [ "$IS_CENTOS" = "true" ]; then
+        VMLINUZ_FILE=`(cd /boot/ && ls -1 vmlinuz* | head -1)`
+        INITRAMFS_FILE=`(cd /boot/ && ls -1 initramfs-*.img | head -1)`
 
-    # Create /boot/grub/grub.conf
-    cat > /boot/grub/grub.conf <<EOF
+        # Create /boot/grub/grub.conf
+        cat > /boot/grub/grub.conf <<EOF
 default=0
 timeout=1
 serial --unit=0 --speed=115200
@@ -147,9 +175,23 @@ title CentOS ${CENTOS_VERSION} (Custom AMI)
         initrd /boot/${INITRAMFS_FILE}
 EOF
 
-    cd /boot/grub/ && ln -sf grub.conf menu.lst
+        cd /boot/grub/ && rm -f menu.lst
+        cd /boot/grub/ && ln -sf grub.conf menu.lst
 
-    echo "/boot/grub/grub.conf and menu.lst set."
+        echo "/boot/grub/grub.conf and menu.lst set."
+    elif [ "$IS_DEBIAN" = "true" ]; then
+        VMLINUZ_FILE=`(cd /boot/ && ls -1 vmlinuz* | head -1)`
+        INITRD_FILE=`(cd /boot/ && ls -1 initrd.img* | head -1)`
+        cat > /boot/grub/menu.lst <<EOF
+default		0
+timeout		0
+hiddenmenu
+title		Ubuntu 14.04.3 LTS Custom AMI
+    root (hd0,0)
+    kernel /boot/${VMLINUZ_FILE} root=LABEL=_root ro console=hvc0
+    initrd /boot/${INITRD_FILE}
+EOF
+    fi
 }
 
 #---------------------------------------
@@ -184,6 +226,14 @@ EOF
 #---------------------------------------
 [ `id -u` -eq 0 ] || abort "Must run as root"
 [ $# -ne 0 ] || usage
+
+if [ -f /etc/debian_version ]; then
+    IS_DEBIAN=true
+elif [ -f /etc/redhat-release ]; then
+    IS_CENTOS=true
+else
+    abort "Unknown system"
+fi
 
 if [ "$1" = "all" ]; then
     for cmd in $ALL; do $cmd || true; done

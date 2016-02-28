@@ -79,9 +79,8 @@ close_devices() {
         umount ${ROOT_MOUNT}/dev/pts 2>/dev/null || true
         umount ${ROOT_MOUNT}/dev 2>/dev/null || true
     elif [ "$IS_DEBIAN" = "true" ]; then
-        umount ${ROOT_MOUNT}/proc 2>/dev/null || true
-        umount ${ROOT_MOUNT}/dev/pts 2>/dev/null || true
-        umount ${ROOT_MOUNT}/dev 2>/dev/null || true
+        chroot ${ROOT_MOUNT} 'umount /proc || true'
+        chroot ${ROOT_MOUNT} 'umount /sys || true'
     fi
 
     sync;sync;sync;sync;sync
@@ -110,14 +109,13 @@ setup_devices() {
         mount -o bind /proc ${ROOT_MOUNT}/proc
         mount -o bind /sys ${ROOT_MOUNT}/sys
     elif [ "$IS_DEBIAN" = "true" ]; then
-        mkdir -p ${ROOT_MOUNT}/{dev,etc,proc}
-        umount ${ROOT_MOUNT}/proc 2>/dev/null || true
-        umount ${ROOT_MOUNT}/dev/pts 2>/dev/null || true
-        umount ${ROOT_MOUNT}/dev 2>/dev/null || true
+        mkdir -p ${ROOT_MOUNT}/{dev,etc,proc,sys}
 
-        mount -o bind /dev ${ROOT_MOUNT}/dev
-        mount -o bind /dev/pts ${ROOT_MOUNT}/dev/pts
-        mount -o bind /proc ${ROOT_MOUNT}/proc
+        chroot ${ROOT_MOUNT} 'umount /proc || true'
+        chroot ${ROOT_MOUNT} 'umount /sys || true'
+
+        chroot ${ROOT_MOUNT} mount -t proc none /proc
+        chroot ${ROOT_MOUNT} mount -t sysfs none /sys
     fi
 
     echo "Devices mounted."
@@ -126,13 +124,13 @@ setup_devices() {
 install_packages() {
     [ -d "${ROOT_MOUNT}" ] || abort "Not a directory: ${ROOT_MOUNT}"
 
+    # Install packages
+    PACKAGES=`cat $PACKAGE_FILE | grep -P '^[^#\s]+.*'`
+
     if [ "$IS_CENTOS" = "true" ]; then
         touch ${ROOT_MOUNT}/etc/fstab
         mkdir -p ${ROOT_MOUNT}/etc/sysconfig
         touch ${ROOT_MOUNT}/etc/sysconfig/network
-
-        # Install packages
-        PACKAGES=`cat $PACKAGE_FILE | grep -P '^[^#\s]+.*'`
 
         #yum -c $REPO_FILE --disablerepo=* --enablerepo=_base --installroot=${ROOT_MOUNT} -y groupinstall Core
         for p in $PACKAGES
@@ -144,7 +142,26 @@ install_packages() {
         #yum -c $REPO_FILE --disablerepo=* --enablerepo=_updates --installroot=${ROOT_MOUNT} -y update
         #echo "YUM update complete."
     elif [ "$IS_DEBIAN" = "true" ]; then
-        debootstrap --arch amd64 trusty ${ROOT_MOUNT}  http://archive.ubuntu.com/ubuntu
+        ubuntu_url=`grep '^deb' $REPO_FILE | head -1 |  awk '{print $2}'`
+        ubuntu_release=`grep '^deb' $REPO_FILE | head -1 |  awk '{print $3}'`
+
+        debootstrap --arch amd64 $ubuntu_release ${ROOT_MOUNT} $ubuntu_url
+        echo ------------------------------------------------------------------------
+        echo "debootstrap install complete."
+        echo ------------------------------------------------------------------------
+
+        chroot ${ROOT_MOUNT} apt-get update
+        echo ------------------------------------------------------------------------
+        echo "apt-get update complete."
+        echo ------------------------------------------------------------------------
+
+        for p in $PACKAGES
+        do
+            chroot ${ROOT_MOUNT} apt-get -y install $p
+            echo ------------------------------------------------------------------------
+            echo "apt-get install $p complete."
+            echo ------------------------------------------------------------------------
+        done
     fi
 }
 
