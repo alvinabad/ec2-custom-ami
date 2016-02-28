@@ -169,7 +169,7 @@ install_packages() {
 
         for p in $PACKAGES
         do
-            chroot ${ROOT_MOUNT} apt-get -y install $p
+            chroot ${ROOT_MOUNT} apt-get --assume-yes -y install $p
             echo ------------------------------------------------------------------------
             echo "apt-get install $p complete."
             echo ------------------------------------------------------------------------
