@@ -58,7 +58,8 @@ cleanup() {
 
     echo "Cleaning up ${ROOT_MOUNT} ..."
     close_devices
-    rm -rf ${ROOT_MOUNT}
+    echo "Removing ${ROOT_MOUNT} ..."
+    rm -rf ${ROOT_MOUNT} > /dev/null 2>&1
 }
 
 #-------------------------------------------------------------------------------
@@ -81,13 +82,13 @@ close_devices() {
         umount ${ROOT_MOUNT}/dev/pts 2>/dev/null || true
         umount ${ROOT_MOUNT}/dev 2>/dev/null || true
     elif [ "$IS_DEBIAN" = "true" ]; then
-        if [ -d "${ROOT_MOUNT}/proc" -a mountpoint {ROOT_MOUNT}/proc ]; then
+        if [ -d "${ROOT_MOUNT}/proc" -a `mountpoint {ROOT_MOUNT}/proc` ]; then
             umount ${ROOT_MOUNT}/proc || true
         fi
-        if [ -d "${ROOT_MOUNT}/sys" -a mountpoint {ROOT_MOUNT}/sys ]; then
+        if [ -d "${ROOT_MOUNT}/sys" -a `mountpoint {ROOT_MOUNT}/sys` ]; then
             umount ${ROOT_MOUNT}/sys || true
         fi
-        if [ -d "${ROOT_MOUNT}/dev/pts" -a mountpoint {ROOT_MOUNT}/dev/pts ]; then
+        if [ -d "${ROOT_MOUNT}/dev/pts" -a `mountpoint {ROOT_MOUNT}/dev/pts` ]; then
             umount ${ROOT_MOUNT}/dev/pts || true
         fi
     fi
@@ -155,13 +156,13 @@ install_packages() {
         echo "debootstrap install complete."
         echo ------------------------------------------------------------------------
 
-        if [ -d "${ROOT_MOUNT}/proc" -a mountpoint {ROOT_MOUNT}/proc ]; then
+        if [ -d "${ROOT_MOUNT}/proc" -a `mountpoint {ROOT_MOUNT}/proc` ]; then
             umount ${ROOT_MOUNT}/proc || true
         fi
-        if [ -d "${ROOT_MOUNT}/sys" -a mountpoint {ROOT_MOUNT}/sys ]; then
+        if [ -d "${ROOT_MOUNT}/sys" -a `mountpoint {ROOT_MOUNT}/sys` ]; then
             umount ${ROOT_MOUNT}/sys || true
         fi
-        if [ -d "${ROOT_MOUNT}/dev/pts" -a mountpoint {ROOT_MOUNT}/dev/pts ]; then
+        if [ -d "${ROOT_MOUNT}/dev/pts" -a `mountpoint {ROOT_MOUNT}/dev/pts` ]; then
             umount ${ROOT_MOUNT}/dev/pts || true
         fi
 
@@ -187,12 +188,8 @@ install_packages() {
 post_install() {
     [ -d "${ROOT_MOUNT}" ] || abort "Not a directory: ${ROOT_MOUNT}"
 
-    if [ "$IS_CENTOS" = "true" ]; then
-        cp chroot-post-install.sh ${ROOT_MOUNT}/tmp
-        chroot ${ROOT_MOUNT} /tmp/chroot-post-install.sh all
-    elif [ "$IS_DEBIAN" = "true" ]; then
-        true
-    fi
+    cp chroot-post-install.sh ${ROOT_MOUNT}/tmp
+    chroot ${ROOT_MOUNT} /tmp/chroot-post-install.sh all
 }
 
 clean() {
