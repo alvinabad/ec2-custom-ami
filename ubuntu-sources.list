@@ -1,1 +1,2 @@
-deb http://us-west-1.ec2.archive.ubuntu.com/ubuntu/ trusty universe
+deb http://archive.ubuntu.com/ubuntu trusty universe
+#deb http://us-west-1.ec2.archive.ubuntu.com/ubuntu/ trusty universe

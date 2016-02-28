@@ -33,14 +33,12 @@ Usage:
     `basename $0` [options] image-tarfile
 
 options:
-    -c repo_file        YUM repo file
-    -p package_file     Packages List file
+    -c filename         YUM repo or APT sources file
+    -p filename         Packages List file
 
-Example:
-    `basename $0` -c yum.repo -p packages.cfg mycentos6.tar.gz
-
-Creates mycentos6.tar.gz file.
-Extract this file to a disk volume and create a snapshot/AMI image.
+Examples:
+    `basename $0` -c yum.repo -p centos-packages.cfg mycentos6.tar.gz
+    `basename $0` -c ubuntu-sources.list -p ubuntu-packages.cfg myubuntu14.tar.gz
 EOF
     exit 1
 }
@@ -247,7 +245,7 @@ TARFILE=${TARFILE_DIR}/`basename $TARFILE`
 SCRIPT_DIR=`dirname $0`
 SCRIPT_DIR=`(cd $SCRIPT_DIR && pwd)`
 
-trap "cleanup; exit 1" SIGHUP SIGINT SIGTERM EXIT
+trap "cleanup; exit 1" SIGHUP SIGINT SIGTERM
 
 ROOT_MOUNT=/var/tmp/`basename $0`.${RANDOM}
 mkdir -p $ROOT_MOUNT
