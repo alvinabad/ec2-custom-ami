@@ -63,6 +63,8 @@ cleanup() {
 
 #-------------------------------------------------------------------------------
 close_devices() {
+    echo "Closing devices..."
+
     [ -d "${ROOT_MOUNT}" ] || abort "Not a directory: ${ROOT_MOUNT}"
 
     rm -f ${ROOT_MOUNT}/root/.bash_history
@@ -79,8 +81,8 @@ close_devices() {
         umount ${ROOT_MOUNT}/dev/pts 2>/dev/null || true
         umount ${ROOT_MOUNT}/dev 2>/dev/null || true
     elif [ "$IS_DEBIAN" = "true" ]; then
-        chroot ${ROOT_MOUNT} 'umount /proc || true'
-        chroot ${ROOT_MOUNT} 'umount /sys || true'
+        umount ${ROOT_MOUNT}/proc || true
+        umount ${ROOT_MOUNT}/sys || true
     fi
 
     sync;sync;sync;sync;sync
@@ -89,6 +91,8 @@ close_devices() {
 }
 
 setup_devices() {
+    echo "Setting up devices..."
+
     [ -d "${ROOT_MOUNT}" ] || abort "Not a directory: ${ROOT_MOUNT}"
 
     if [ "$IS_CENTOS" = "true" ]; then
@@ -110,12 +114,6 @@ setup_devices() {
         mount -o bind /sys ${ROOT_MOUNT}/sys
     elif [ "$IS_DEBIAN" = "true" ]; then
         mkdir -p ${ROOT_MOUNT}/{dev,etc,proc,sys}
-
-        chroot ${ROOT_MOUNT} 'umount /proc || true'
-        chroot ${ROOT_MOUNT} 'umount /sys || true'
-
-        chroot ${ROOT_MOUNT} mount -t proc none /proc
-        chroot ${ROOT_MOUNT} mount -t sysfs none /sys
     fi
 
     echo "Devices mounted."
@@ -149,6 +147,12 @@ install_packages() {
         echo ------------------------------------------------------------------------
         echo "debootstrap install complete."
         echo ------------------------------------------------------------------------
+
+        umount ${ROOT_MOUNT}/proc || true
+        umount ${ROOT_MOUNT}/sys || true
+
+        chroot ${ROOT_MOUNT} mount -t proc none /proc
+        chroot ${ROOT_MOUNT} mount -t sysfs none /sys
 
         chroot ${ROOT_MOUNT} apt-get update
         echo ------------------------------------------------------------------------
@@ -230,7 +234,7 @@ TARFILE=${TARFILE_DIR}/`basename $TARFILE`
 SCRIPT_DIR=`dirname $0`
 SCRIPT_DIR=`(cd $SCRIPT_DIR && pwd)`
 
-trap "cleanup; exit 1" SIGHUP SIGINT SIGTERM
+trap "cleanup; exit 1" SIGHUP SIGINT SIGTERM EXIT
 
 ROOT_MOUNT=/var/tmp/`basename $0`.${RANDOM}
 mkdir -p $ROOT_MOUNT
