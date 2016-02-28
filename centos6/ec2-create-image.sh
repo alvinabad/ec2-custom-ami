@@ -81,8 +81,12 @@ close_devices() {
         umount ${ROOT_MOUNT}/dev/pts 2>/dev/null || true
         umount ${ROOT_MOUNT}/dev 2>/dev/null || true
     elif [ "$IS_DEBIAN" = "true" ]; then
-        umount ${ROOT_MOUNT}/proc || true
-        umount ${ROOT_MOUNT}/sys || true
+        if [ -d "${ROOT_MOUNT}/proc" ]; then
+            umount ${ROOT_MOUNT}/proc || true
+        fi
+        if [ -d "${ROOT_MOUNT}/sys" ]; then
+            umount ${ROOT_MOUNT}/sys || true
+        fi
     fi
 
     sync;sync;sync;sync;sync
@@ -148,8 +152,12 @@ install_packages() {
         echo "debootstrap install complete."
         echo ------------------------------------------------------------------------
 
-        umount ${ROOT_MOUNT}/proc || true
-        umount ${ROOT_MOUNT}/sys || true
+        if [ -d "${ROOT_MOUNT}/proc" ]; then
+            umount ${ROOT_MOUNT}/proc || true
+        fi
+        if [ -d "${ROOT_MOUNT}/sys" ]; then
+            umount ${ROOT_MOUNT}/sys || true
+        fi
 
         chroot ${ROOT_MOUNT} mount -t proc none /proc
         chroot ${ROOT_MOUNT} mount -t sysfs none /sys
