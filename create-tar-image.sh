@@ -80,13 +80,13 @@ close_devices() {
         umount ${ROOT_MOUNT}/dev/pts 2>/dev/null || true
         umount ${ROOT_MOUNT}/dev 2>/dev/null || true
     elif [ "$IS_DEBIAN" = "true" ]; then
-        if [ -d "${ROOT_MOUNT}/proc" -a test `mountpoint {ROOT_MOUNT}/proc` ]; then
+        if [ -d "${ROOT_MOUNT}/proc" -a test `mountpoint ${ROOT_MOUNT}/proc` ]; then
             umount ${ROOT_MOUNT}/proc || true
         fi
-        if [ -d "${ROOT_MOUNT}/sys" -a test `mountpoint {ROOT_MOUNT}/sys` ]; then
+        if [ -d "${ROOT_MOUNT}/sys" -a test `mountpoint ${ROOT_MOUNT}/sys` ]; then
             umount ${ROOT_MOUNT}/sys || true
         fi
-        if [ -d "${ROOT_MOUNT}/dev/pts" -a test `mountpoint {ROOT_MOUNT}/dev/pts` ]; then
+        if [ -d "${ROOT_MOUNT}/dev/pts" -a test `mountpoint ${ROOT_MOUNT}/dev/pts` ]; then
             umount ${ROOT_MOUNT}/dev/pts || true
         fi
     fi
@@ -154,13 +154,13 @@ install_packages() {
         echo "debootstrap install complete."
         echo ------------------------------------------------------------------------
 
-        if [ -d "${ROOT_MOUNT}/proc" -a test `mountpoint {ROOT_MOUNT}/proc` ]; then
+        if [ -d "${ROOT_MOUNT}/proc" -a test `mountpoint ${ROOT_MOUNT}/proc` ]; then
             umount ${ROOT_MOUNT}/proc || true
         fi
-        if [ -d "${ROOT_MOUNT}/sys" -a test `mountpoint {ROOT_MOUNT}/sys` ]; then
+        if [ -d "${ROOT_MOUNT}/sys" -a test `mountpoint ${ROOT_MOUNT}/sys` ]; then
             umount ${ROOT_MOUNT}/sys || true
         fi
-        if [ -d "${ROOT_MOUNT}/dev/pts" -a test `mountpoint {ROOT_MOUNT}/dev/pts` ]; then
+        if [ -d "${ROOT_MOUNT}/dev/pts" -a test `mountpoint ${ROOT_MOUNT}/dev/pts` ]; then
             umount ${ROOT_MOUNT}/dev/pts || true
         fi
 
