@@ -36,16 +36,16 @@ Usage:
     `basename $0` tarfile disk
 
 Example:
-    `basename $0` ec2-image.tar.gz /dev/xvdk
+    `basename $0` ec2-image.tar.gz /dev/xvdf
 
-    ec2-image.tar.gz will be extracted to /dev/xvdk disk.
-    Create snapshot and AMI of /dev/xvdk volume.
+    ec2-image.tar.gz will be extracted to /dev/xvdf disk.
+    Create snapshot and AMI of /dev/xvdf volume.
     Use:
         Root device name: /dev/sda
         ARCH: x86_64
         Kernel ID: pv-grub-hd00_1.04-x86_64
 
-WARNING: Contents of /dev/xvdk will be destroyed.
+WARNING: Contents of /dev/xvdf will be destroyed.
 
 EOF
     exit 1
@@ -143,7 +143,7 @@ mountpoint ${ROOT_MOUNT}/boot
 trap "cleanup; exit 1" SIGHUP SIGINT SIGTERM
 
 # deploy tarfile
-echo "Extracting ${TARFILE} into $ROOT_MOUNT ..."
+echo "Extracting ${TARFILE} into $ROOT_MOUNT on ${DEVICE} ..."
 tar xfz $TARFILE -C $ROOT_MOUNT
 
 cleanup
