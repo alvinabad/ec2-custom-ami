@@ -74,30 +74,7 @@ set_sshd_config() {
 
 #---------------------------------------
 set_network() {
-    if [ "$IS_CENTOS" = "true" ]; then
-        mkdir -p /etc/sysconfig/network-scripts
-
-        cat > /etc/sysconfig/network <<EOF
-NETWORKING=yes
-HOSTNAME=localhost.localdomain
-EOF
-        echo "/etc/sysconfig/network updated."
-
-        cat > /etc/sysconfig/network-scripts/ifcfg-eth0 <<EOF
-DEVICE="eth0"
-NM_CONTROLLED="yes"
-ONBOOT=yes
-TYPE=Ethernet
-BOOTPROTO=dhcp
-DEFROUTE=yes
-PEERDNS=yes
-PEERROUTES=yes
-IPV4_FAILURE_FATAL=yes
-IPV6INIT=no
-EOF
-        echo "ifcfg-eth0 updated."
-    elif [ "$IS_UBUNTU" = "true" ]; then
-        cat > /etc/network/interfaces <<EOF
+    cat > /etc/network/interfaces <<EOF
 # The loopback network interface
 auto lo
 iface lo inet loopback
@@ -109,80 +86,37 @@ iface eth0 inet dhcp
 # Include files from /etc/network/interfaces.d:
 source-directory /etc/network/interfaces.d
 EOF
-        echo "/etc/network/interfaces updated."
-    fi
+
+    echo "/etc/network/interfaces updated."
 }
 
 #---------------------------------------
 set_fstab() {
-    if [ "$IS_CENTOS" = "true" ]; then
-        cat > /etc/fstab <<EOF
-LABEL=_boot           /boot          ext4    defaults        1 1
-LABEL=_root           /              ext4    defaults        1 1
-tmpfs                 /dev/shm       tmpfs   defaults        0 0
-devpts                /dev/pts       devpts  gid=5,mode=620  0 0
-sysfs                 /sys           sysfs   defaults        0 0
-proc                  /proc          proc    defaults        0 0
-EOF
-    elif [ "$IS_UBUNTU" = "true" ]; then
-        cat > /etc/fstab <<EOF
+    cat > /etc/fstab <<EOF
 LABEL=_root	/	 ext4	defaults,discard	0 0
 LABEL=_boot	/boot	 ext4	defaults,discard	0 0
 EOF
-    fi
 
     echo "/etc/fstab updated."
 }
 
 #---------------------------------------
 set_selinux() {
-    if [ "$IS_CENTOS" = "true" ]; then
-        sed -i '/^SELINUX=/d' /etc/sysconfig/selinux
-        echo "SELINUX=disabled" >> /etc/sysconfig/selinux
-        touch /.autorelabel
-
-        echo "/etc/sysconfig/selinux updated."
-    fi
+    # nothing for Ubuntu
+    true
 }
 
 #---------------------------------------
 set_chkconfig() {
-    if [ "$IS_CENTOS" = "true" ]; then
-        /sbin/chkconfig iptables off || true
-        /sbin/chkconfig ip6tables off || true
-        /sbin/chkconfig sendmail off || true
-        /sbin/chkconfig 
-
-        echo "chkconfig set."
-    fi
+    # nothing for Ubuntu
+    true
 }
 
 #---------------------------------------
 set_grub() {
-    if [ "$IS_CENTOS" = "true" ]; then
-        VMLINUZ_FILE=`(cd /boot/ && ls -1 vmlinuz* | head -1)`
-        INITRAMFS_FILE=`(cd /boot/ && ls -1 initramfs-*.img | head -1)`
-
-        # Create /boot/grub/grub.conf
-        cat > /boot/grub/grub.conf <<EOF
-default=0
-timeout=1
-serial --unit=0 --speed=115200
-terminal --timeout=1 serial console
-title CentOS ${CENTOS_VERSION} (Custom AMI)
-        root (hd0,0)
-        kernel /boot/${VMLINUZ_FILE} ro root=LABEL=_root console=hvc0 crashkernel=no SYSFONT=latarcyrheb-sun16 LANG=en_US.UTF-8 KEYTABLE=us
-        initrd /boot/${INITRAMFS_FILE}
-EOF
-
-        cd /boot/grub/ && rm -f menu.lst
-        cd /boot/grub/ && ln -sf grub.conf menu.lst
-
-        echo "/boot/grub/grub.conf and menu.lst set."
-    elif [ "$IS_UBUNTU" = "true" ]; then
-        VMLINUZ_FILE=`(cd /boot/ && ls -1 vmlinuz* | head -1)`
-        INITRD_FILE=`(cd /boot/ && ls -1 initrd.img* | head -1)`
-        cat > /boot/grub/menu.lst <<EOF
+    VMLINUZ_FILE=`(cd /boot/ && ls -1 vmlinuz* | head -1)`
+    INITRD_FILE=`(cd /boot/ && ls -1 initrd.img* | head -1)`
+    cat > /boot/grub/menu.lst <<EOF
 default		0
 timeout		0
 hiddenmenu
@@ -191,7 +125,8 @@ root (hd0,0)
 kernel /boot/${VMLINUZ_FILE} root=LABEL=_root ro console=hvc0
 initrd /boot/${INITRD_FILE}
 EOF
-    fi
+
+    echo "/boot/grub/menu.lst updated."
 }
 
 #---------------------------------------
@@ -227,13 +162,7 @@ EOF
 [ `id -u` -eq 0 ] || abort "Must run as root"
 [ $# -ne 0 ] || usage
 
-if [ -f /etc/debian_version ]; then
-    IS_UBUNTU=true
-elif [ -f /etc/centos-release ]; then
-    IS_CENTOS=true
-else
-    abort "Unknown system"
-fi
+[ -f /etc/debian_version ] || abort "Must run under Ubuntu system."
 
 if [ "$1" = "all" ]; then
     for cmd in $ALL; do $cmd || true; done
