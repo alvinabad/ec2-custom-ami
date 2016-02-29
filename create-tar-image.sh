@@ -79,7 +79,7 @@ close_devices() {
         umount ${ROOT_MOUNT}/dev/shm 2>/dev/null || true
         umount ${ROOT_MOUNT}/dev/pts 2>/dev/null || true
         umount ${ROOT_MOUNT}/dev 2>/dev/null || true
-    elif [ "$IS_DEBIAN" = "true" ]; then
+    elif [ "$IS_UBUNTU" = "true" ]; then
         if [ -d "${ROOT_MOUNT}/proc" ] && mountpoint ${ROOT_MOUNT}/proc; then
             umount ${ROOT_MOUNT}/proc || true
         fi
@@ -118,7 +118,7 @@ setup_devices() {
         mount -o bind /dev/shm ${ROOT_MOUNT}/dev/shm
         mount -o bind /proc ${ROOT_MOUNT}/proc
         mount -o bind /sys ${ROOT_MOUNT}/sys
-    elif [ "$IS_DEBIAN" = "true" ]; then
+    elif [ "$IS_UBUNTU" = "true" ]; then
         mkdir -p ${ROOT_MOUNT}/{dev,etc,proc,sys}
     fi
 
@@ -145,7 +145,7 @@ install_packages() {
 
         #yum -c $REPO_FILE --disablerepo=* --enablerepo=_updates --installroot=${ROOT_MOUNT} -y update
         #echo "YUM update complete."
-    elif [ "$IS_DEBIAN" = "true" ]; then
+    elif [ "$IS_UBUNTU" = "true" ]; then
         ubuntu_url=`grep '^deb' $REPO_FILE | head -1 |  awk '{print $2}'`
         ubuntu_release=`grep '^deb' $REPO_FILE | head -1 |  awk '{print $3}'`
 
@@ -251,7 +251,7 @@ ROOT_MOUNT=/var/tmp/`basename $0`.${RANDOM}
 mkdir -p $ROOT_MOUNT
 
 if [ -f /etc/debian_version ]; then
-    IS_DEBIAN=true
+    IS_UBUNTU=true
 elif [ -f /etc/redhat-release ]; then
     IS_CENTOS=true
 fi

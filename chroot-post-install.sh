@@ -96,7 +96,7 @@ IPV4_FAILURE_FATAL=yes
 IPV6INIT=no
 EOF
         echo "ifcfg-eth0 updated."
-    elif [ "$IS_DEBIAN" = "true" ]; then
+    elif [ "$IS_UBUNTU" = "true" ]; then
         cat > /etc/network/interfaces <<EOF
 # The loopback network interface
 auto lo
@@ -124,7 +124,7 @@ devpts                /dev/pts       devpts  gid=5,mode=620  0 0
 sysfs                 /sys           sysfs   defaults        0 0
 proc                  /proc          proc    defaults        0 0
 EOF
-    elif [ "$IS_DEBIAN" = "true" ]; then
+    elif [ "$IS_UBUNTU" = "true" ]; then
         cat > /etc/fstab <<EOF
 LABEL=_root	/	 ext4	defaults,discard	0 0
 LABEL=_boot	/boot	 ext4	defaults,discard	0 0
@@ -179,7 +179,7 @@ EOF
         cd /boot/grub/ && ln -sf grub.conf menu.lst
 
         echo "/boot/grub/grub.conf and menu.lst set."
-    elif [ "$IS_DEBIAN" = "true" ]; then
+    elif [ "$IS_UBUNTU" = "true" ]; then
         VMLINUZ_FILE=`(cd /boot/ && ls -1 vmlinuz* | head -1)`
         INITRD_FILE=`(cd /boot/ && ls -1 initrd.img* | head -1)`
         cat > /boot/grub/menu.lst <<EOF
@@ -228,7 +228,7 @@ EOF
 [ $# -ne 0 ] || usage
 
 if [ -f /etc/debian_version ]; then
-    IS_DEBIAN=true
+    IS_UBUNTU=true
 elif [ -f /etc/centos-release ]; then
     IS_CENTOS=true
 else
