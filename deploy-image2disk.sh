@@ -61,37 +61,41 @@ partition_disk() {
 
     [ -b "$device" ] || abort "$device is not a disk device."
 
+set -x
     # clear device
     dd if=/dev/zero of=$device bs=1 count=512
+    sleep 1
 
     # partition device
     cat > $TEMP_FILE <<EOF
 n
 p
 1
-1
+
 +250M
 n
 p
 2
 
 
-p
 w
+
 EOF
-    fdisk /dev/xvdl < $TEMP_FILE > /dev/null 2>&1 || true
+    fdisk ${device} < $TEMP_FILE > /dev/null 2>&1 || true
     rm -f $TEMP_FILE
+    fdisk -l ${device}
 
     # format partitions
     mkfs.ext4 ${device}1 > /dev/null
     mkfs.ext4 ${device}2 > /dev/null
 
     # label partitions
-    e2label ${DEVICE}2 _root
-    e2label ${DEVICE}1 _boot
-    blkid ${DEVICE}1
-    blkid ${DEVICE}2
-    echo "Disk partitioned and formatted: ${DEVICE}1, ${DEVICE}2"
+    e2label ${device}2 _root
+    e2label ${device}1 _boot
+    blkid ${device}1
+    blkid ${device}2
+    echo "Disk partitioned and formatted: ${device}1, ${device}2"
+    set +x
 }
 
 cleanup() {

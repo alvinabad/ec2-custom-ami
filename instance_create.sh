@@ -49,6 +49,26 @@ create_snapshot() {
 create_image() {
     [ -z "$SNAPSHOT_ID" ] && usage
 
+set -x
+    aws ec2 register-image \
+        --name "Example_Image_Name" \
+        --description "Example Image Description" \
+        --architecture x86_64 \
+        --kernel-id aki-920531d7 \
+        --root-device-name "/dev/sda" \
+        --block-device-mappings "[
+           {
+             \"DeviceName\": \"/dev/sda\",
+             \"Ebs\": {
+             \"SnapshotId\": \"$SNAPSHOT_ID\",
+             }
+           }
+        ]"
+}
+
+create_image2() {
+    [ -z "$SNAPSHOT_ID" ] && usage
+
     echo --------------------------------------------------------------------------------
     echo generate-cli-skeleton
     aws ec2 register-image --generate-cli-skeleton
@@ -62,17 +82,14 @@ create_image() {
     "Architecture": "x86_64",
     "KernelId": "aki-920531d7",
     "RootDeviceName": "/dev/sda",
-    "VirtualizationType": "paravirtual",
-    "BlockDeviceMappings": [{
-            "VirtualName": "myubuntu",
-            "DeviceName": "/dev/sda",
-            "NoDevice": "",
+    "BlockDeviceMappings": [
+        {
             "Ebs": {
                 "SnapshotId": "$SNAPSHOT_ID",
-                "VolumeSize": 8,
-                "DeleteOnTermination": true,
-                "VolumeType": "gp2" },
-        }],
+            },
+            "DeviceName": "/dev/sda1",
+        }
+    ]
 }
 EOF
 
@@ -87,9 +104,9 @@ EOF
 
 ARG=$1
 # Create snapshot
-#VOLUME_ID=$ARG
-#create_snapshot 
+VOLUME_ID=$ARG
+create_snapshot 
 
 # Create image
 [ -n "$SNAPSHOT_ID" ] || SNAPSHOT_ID=$ARG
-create_image
+#create_image
