@@ -149,6 +149,7 @@ EOF
 
     cd /boot/grub/ && rm -f menu.lst
     cd /boot/grub/ && ln -sf grub.conf menu.lst
+    ln -sf /boot/grub/grub.conf /etc/grub.conf
 
     echo "/boot/grub/grub.conf and menu.lst set."
 }
