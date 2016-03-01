@@ -61,7 +61,6 @@ partition_disk() {
 
     [ -b "$device" ] || abort "$device is not a disk device."
 
-set -x
     # clear device
     dd if=/dev/zero of=$device bs=1 count=512
     sleep 1
