@@ -147,6 +147,16 @@ title CentOS ${CENTOS_VERSION} (Custom AMI)
         initrd /boot/${INITRAMFS_FILE}
 EOF
 
+    # add kernel file
+    cat > /etc/sysconfig/kernel <<EOF
+# UPDATEDEFAULT specifies if new-kernel-pkg should make
+# new kernels the default
+UPDATEDEFAULT=yes
+
+# DEFAULTKERNEL specifies the default kernel package type
+DEFAULTKERNEL=kernel
+EOF
+
     cd /boot/grub/ && rm -f menu.lst
     cd /boot/grub/ && ln -sf grub.conf menu.lst
     ln -sf /boot/grub/grub.conf /etc/grub.conf
